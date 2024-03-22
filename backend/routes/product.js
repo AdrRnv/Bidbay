@@ -24,6 +24,10 @@ router.get('/api/products', async (req, res, next) => {
       }]
     }]
   })
+
+  if (product === null) {
+    res.status(404).send('No products found')
+  }
   res.status(200).send(product)
 })
 
