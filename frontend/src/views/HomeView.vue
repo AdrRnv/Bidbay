@@ -140,8 +140,15 @@ function navigateToProduct(productId) {
             <p class="card-text" data-test-product-date>
               En cours jusqu'au {{ product.endDate }}
             </p>
-            <p class="card-text" data-test-product-original-price>
-              Prix de départ : {{ product.originalPrice }} €
+            <p class="card-text" data-test-product-price>
+              {{
+                new Date(product.endDate) > new Date()
+                    ? "Prix de départ : " + product.originalPrice + " €"
+                    : "Prix actuel : " +
+                    (product.bids.length
+                        ? product.bids[product.bids.length - 1].price + " €"
+                        : product.originalPrice + " €")
+              }}
             </p>
             <button class="btn btn-primary">Faire une offre</button>
           </div>
