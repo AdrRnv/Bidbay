@@ -26,9 +26,9 @@ router.get('/api/products', async (req, res, next) => {
   })
 
   if (product === null) {
-    res.status(404).send('No products found')
+    return res.status(404).send('No products found')
   }
-  res.status(200).send(product)
+  return res.status(200).send(product)
 })
 
 router.get('/api/products/:productId', async (req, res) => {
@@ -55,9 +55,9 @@ router.get('/api/products/:productId', async (req, res) => {
   })
 
   if (product === null) {
-    res.status(404).send('Product not found found')
+    return res.status(404).send('Product not found found')
   }
-  res.status(200).send(product)
+  return res.status(200).send(product)
 })
 
 // You can use the authMiddleware with req.user.id to authenticate your endpoint ;)
