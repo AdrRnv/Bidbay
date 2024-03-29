@@ -58,11 +58,56 @@ router.post('/api/products', authMiddleware, async (req, res, next) => {
 })
 
 router.put('/api/products/:productId', async (req, res) => {
-  res.status(600).send()
+  try {
+    const productId = req.params.productId
+    const product = await Product.findByPk(productId)
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' })
+    }
+
+    const isAuthorized = req.user.admin === true || product.sellerId === req.user.id
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'User not granted' })
+    }
+
+    if (!req.body || !req.body.name || !req.body.description || !req.body.category ||
+        !req.body.originalPrice || !req.body.pictureUrl || !req.body.endDate) {
+      return res.status(400).json({ error: 'Invalid or missing fields', details: ['name', 'description', 'category', 'originalPrice', 'pictureUrl', 'endDate'] })
+    }
+
+    // Update product
+    const { name, description, category, originalPrice, pictureUrl, endDate } = req.body
+    await product.update({ name, description, category, originalPrice, pictureUrl, endDate })
+
+    return res.json(product)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Internal Server Error' })
+  }
 })
 
 router.delete('/api/products/:productId', async (req, res) => {
-  res.status(600).send()
+  try {
+    const productId = req.params.productId
+    const product = await Product.findByPk(productId)
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' })
+    }
+
+    const isAuthorized = req.user.admin === true || product.sellerId === req.user.id
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'User not granted' })
+    }
+
+    await product.destroy()
+
+    return res.status(204).send()
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Internal Server Error' })
+  }
 })
 
 export default router
