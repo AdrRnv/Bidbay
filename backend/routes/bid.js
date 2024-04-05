@@ -5,16 +5,14 @@ import { getDetails } from '../validators/index.js'
 
 const router = express.Router()
 
-router.delete('/api/bids/:bidId', async (req, res) => {
+router.delete('/api/bids/:bidId', authMiddleware, async (req, res) => {
   try {
     const bid = await Bid.findByPk(req.params.bidId)
-
     if (!bid) {
       return res.status(404).send("L'offre d'enchère n'existe pas")
     } else if ((bid.bidderId !== req.user.id && !req.user.admin)) {
       return res.status(403).send("Vous n'êtes pas autorisés à supprimer cette offre d'enchère")
     }
-
     await bid.destroy()
     res.status(204).send()
   } catch (err) {
