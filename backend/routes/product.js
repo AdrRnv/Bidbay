@@ -35,7 +35,7 @@ router.get('/api/products/:productId', async (req, res) => {
   const productId = req.params.productId
 
   const product = await Product.findOne({
-    attributes: ['id', 'name', 'description', 'pictureUrl', 'originalPrice'],
+    attributes: ['id', 'name', 'description', 'pictureUrl', 'originalPrice', 'category'],
     include: [{
       model: User,
       as: 'seller',
