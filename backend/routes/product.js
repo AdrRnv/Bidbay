@@ -35,7 +35,7 @@ router.get('/api/products/:productId', async (req, res) => {
   const productId = req.params.productId
 
   const product = await Product.findOne({
-    attributes: ['id', 'name', 'description', 'pictureUrl', 'originalPrice', 'category'],
+    attributes: ['id', 'name', 'description', 'pictureUrl', 'originalPrice', 'category', 'endDate'],
     include: [{
       model: User,
       as: 'seller',
@@ -82,33 +82,26 @@ router.post('/api/products', authMiddleware, async (req, res, next) => {
   }
 })
 
-router.put('/api/products/:productId', async (req, res) => {
+router.put('/api/products/:productId', authMiddleware, async (req, res, next) => {
   try {
-    const productId = req.params.productId
-    const product = await Product.findByPk(productId)
-
+    const product = await Product.findByPk(req.params.productId, {
+      include: [{
+        model: User,
+        as: 'seller',
+        attributes: ['id', 'username']
+      }]
+    })
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' })
+      res.status(404).send()
+    } else if (product.sellerId !== req.user.id && !req.user.admin) { // Modified this line
+      res.status(403).send()
+    } else {
+      const { name, description, category, originalPrice, pictureUrl, endDate } = req.body
+      await product.update({ name, description, category, originalPrice, pictureUrl, endDate })
+      res.json(product)
     }
-
-    const isAuthorized = req.user.admin === true || product.sellerId === req.user.id
-    if (!isAuthorized) {
-      return res.status(403).json({ error: 'User not granted' })
-    }
-
-    if (!req.body || !req.body.name || !req.body.description || !req.body.category ||
-        !req.body.originalPrice || !req.body.pictureUrl || !req.body.endDate) {
-      return res.status(400).json({ error: 'Invalid or missing fields', details: ['name', 'description', 'category', 'originalPrice', 'pictureUrl', 'endDate'] })
-    }
-
-    // Update product
-    const { name, description, category, originalPrice, pictureUrl, endDate } = req.body
-    await product.update({ name, description, category, originalPrice, pictureUrl, endDate })
-
-    return res.json(product)
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Internal Server Error' })
+    next(error)
   }
 })
 
