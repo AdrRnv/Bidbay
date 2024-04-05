@@ -7,7 +7,7 @@ const router = express.Router()
 
 router.get('/api/products', async (req, res, next) => {
   const product = await Product.findAll({
-    attributes: ['id', 'name', 'description', 'pictureUrl', 'originalPrice'],
+    attributes: ['id', 'name', 'description', 'pictureUrl', 'originalPrice', 'category', 'endDate'],
     include: [{
       model: User,
       as: 'seller',
@@ -16,7 +16,7 @@ router.get('/api/products', async (req, res, next) => {
     {
       model: Bid,
       as: 'bids',
-      attributes: ['id', 'price'],
+      attributes: ['id', 'price', 'date'],
       include: [{
         model: User,
         as: 'bidder',
