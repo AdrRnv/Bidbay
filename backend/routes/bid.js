@@ -22,16 +22,14 @@ router.delete('/api/bids/:bidId', async (req, res) => {
   }
 })
 
-router.post('/api/products/:productId/bids', async (req, res) => {
+router.post('/api/products/:productId/bids', authMiddleware, async (req, res) => {
   try {
     const { price } = req.body
 
     if (!req.user.id && !req.user.admin) {
       return res.status(401).send("Vous n'êtes pas connecté")
     }
-
     let bid
-
     try {
       bid = await Bid.create({
         productId: req.params.productId,
