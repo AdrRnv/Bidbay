@@ -105,26 +105,19 @@ router.put('/api/products/:productId', authMiddleware, async (req, res, next) =>
   }
 })
 
-router.delete('/api/products/:productId', async (req, res) => {
+router.delete('/api/products/:productId', authMiddleware, async (req, res, next) => {
   try {
-    const productId = req.params.productId
-    const product = await Product.findByPk(productId)
-
+    const product = await Product.findByPk(req.params.productId)
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' })
+      res.status(404).send()
+    } else if (product.sellerId !== req.user.id && !req.user.admin) {
+      res.status(403).send()
+    } else {
+      await product.destroy()
+      res.status(204).send()
     }
-
-    const isAuthorized = req.user.admin === true || product.sellerId === req.user.id
-    if (!isAuthorized) {
-      return res.status(403).json({ error: 'User not granted' })
-    }
-
-    await product.destroy()
-
-    return res.status(204).send()
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Internal Server Error' })
+    next(error)
   }
 })
 
