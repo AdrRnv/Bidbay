@@ -1,22 +1,63 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
 const loading = ref(false);
 const error = ref(false);
+const products = ref([]);
+const filterText = ref('');
+const sortOption = ref('nom');
+const router = useRouter();
 
 async function fetchProducts() {
   loading.value = true;
   error.value = false;
 
   try {
+    const response = await fetch('http://localhost:3000/api/products');
+    if (!response.ok) {
+      throw new Error('Erreur lors du chargement des produits');
+    }
+    const data = await response.json();
+    products.value = data;
   } catch (e) {
     error.value = true;
+    console.error(e.message);
   } finally {
     loading.value = false;
   }
 }
 
-fetchProducts();
+function filteredProducts() {
+  if (filterText.value) {
+    return products.value.filter(product => product.name.toLowerCase().includes(filterText.value.toLowerCase()));
+  } else {
+    return products.value;
+  }
+}
+
+const sortedProducts = computed(() => {
+  let sorted = [...filteredProducts()];
+
+  if (sortOption.value === 'nom') {
+    sorted.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortOption.value === 'prix') {
+    sorted.sort((a, b) => a.originalPrice - b.originalPrice);
+  }
+
+  return sorted;
+});
+
+function setSortOption(option) {
+  sortOption.value = option;
+}
+
+onMounted(fetchProducts);
+
+function navigateToProduct(productId) {
+  router.push({ name: 'Product', params: { productId } });
+}
+
 </script>
 
 <template>
@@ -29,10 +70,11 @@ fetchProducts();
           <div class="input-group">
             <span class="input-group-text">Filtrage</span>
             <input
-              type="text"
-              class="form-control"
-              placeholder="Filtrer par nom"
-              data-test-filter
+                type="text"
+                class="form-control"
+                placeholder="Filtrer par nom"
+                data-test-filter
+                v-model.trim="filterText"
             />
           </div>
         </form>
@@ -40,72 +82,75 @@ fetchProducts();
       <div class="col-md-6 text-end">
         <div class="btn-group">
           <button
-            type="button"
-            class="btn btn-primary dropdown-toggle"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            data-test-sorter
+              type="button"
+              class="btn btn-primary dropdown-toggle"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              data-test-sorter
           >
-            Trier par nom
+            Trier par {{ sortOption }}
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
-              <a class="dropdown-item" href="#"> Nom </a>
+              <a class="dropdown-item" href="#" @click="setSortOption('nom')">Nom</a>
             </li>
             <li>
-              <a class="dropdown-item" href="#" data-test-sorter-price>
-                Prix
-              </a>
+              <a class="dropdown-item" href="#" data-test-sorter-price @click="setSortOption('prix')">Prix</a>
             </li>
           </ul>
         </div>
       </div>
     </div>
 
-    <div class="text-center mt-4" data-test-loading>
+    <div v-if="loading" class="text-center mt-4" data-test-loading>
       <div class="spinner-border" role="status">
         <span class="visually-hidden">Chargement...</span>
       </div>
     </div>
 
-    <div class="alert alert-danger mt-4" role="alert" data-test-error>
+    <div v-if="error.value" class="alert alert-danger mt-4" role="alert" data-test-error>
       Une erreur est survenue lors du chargement des produits.
     </div>
-    <div class="row">
-      <div class="col-md-4 mb-4" v-for="i in 10" data-test-product :key="i">
+
+    <div class="row" v-if="!loading">
+      <div class="col-md-4 mb-4" v-for="product in sortedProducts" :key="product.id" data-test-product>
         <div class="card">
-          <RouterLink :to="{ name: 'Product', params: { productId: 'TODO' } }">
+          <button @click="navigateToProduct(product.id)">
             <img
-              src="https://picsum.photos/id/403/512/512"
-              data-test-product-picture
-              class="card-img-top"
+                :src="product.pictureUrl"
+                data-test-product-picture
+                class="card-img-top"
             />
-          </RouterLink>
+          </button>
           <div class="card-body">
             <h5 class="card-title">
-              <RouterLink
-                data-test-product-name
-                :to="{ name: 'Product', params: { productId: 'TODO' } }"
-              >
-                Machine à écrire
-              </RouterLink>
+              <button @click="navigateToProduct(product.id)">
+                {{ product.name }}
+              </button>
             </h5>
             <p class="card-text" data-test-product-description>
-              Machine à écrire vintage en parfait état de fonctionnement
+              {{ product.description }}
             </p>
             <p class="card-text">
               Vendeur :
-              <RouterLink
-                data-test-product-seller
-                :to="{ name: 'User', params: { userId: 'TODO' } }"
-              >
-                alice
-              </RouterLink>
+              <button @click="navigateToProduct(product.seller.id)">
+                {{ product.seller.username }}
+              </button>
             </p>
             <p class="card-text" data-test-product-date>
-              En cours jusqu'au 05/04/2026
+              En cours jusqu'au {{ product.endDate }}
             </p>
-            <p class="card-text" data-test-product-price>Prix actuel : 42 €</p>
+            <p class="card-text" data-test-product-price>
+              {{
+                new Date(product.endDate) > new Date()
+                    ? "Prix de départ : " + product.originalPrice + " €"
+                    : "Prix actuel : " +
+                    (product.bids.length
+                        ? product.bids[product.bids.length - 1].price + " €"
+                        : product.originalPrice + " €")
+              }}
+            </p>
+            <button class="btn btn-primary">Faire une offre</button>
           </div>
         </div>
       </div>
